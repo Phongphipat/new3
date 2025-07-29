@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Global Chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f7f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .chat-container {
+      width: 380px;
+      max-width: 96vw;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 36px rgba(0,0,0,0.11);
+      display: flex;
+      flex-direction: column;
+      height: 80vh;
+      overflow: hidden;
+    }
+    .chat-header {
+      background: linear-gradient(90deg,#447aff,#7ddaff);
+      color: #fff;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 16px 0 13px 0;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #e5e9f3;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 14px;
+      background: #f5f7fb;
+    }
+    .chat-message {
+      background: #e8f1ff;
+      padding: 8px 14px;
+      border-radius: 14px;
+      max-width: 85%;
+      word-break: break-word;
+      font-size: 15px;
+      align-self: flex-start;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(100,170,255,0.07);
+      line-height: 1.6;
+    }
+    .chat-message img {
+      max-width: 200px;
+      max-height: 140px;
+      border-radius: 7px;
+      margin-top: 4px;
+      border: 1px solid #d4e2fc;
+    }
+    .chat-input-area {
+      padding: 12px 10px;
+      display: flex;
+      gap: 6px;
+      background: #f9fafb;
+      align-items: center;
+      border-top: 1px solid #eee;
+      position: relative;
+    }
+    .chat-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      padding: 8px;
+      border-radius: 10px;
+    }
+    .chat-btn, .emoji-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 6px;
+      border-radius: 8px;
+      transition: background 0.13s;
+    }
+    .chat-btn:hover, .emoji-btn:hover {
+      background: #e2e8f0;
+    }
+    .emoji-picker {
+      position: absolute;
+      bottom: 46px;
+      left: 34px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.14);
+      border-radius: 14px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(7, 28px);
+      gap: 4px;
+      z-index: 9;
+      font-size: 22px;
+      max-width: 250px;
+    }
+    .preview-image {
+      margin-left: 10px;
+      height: 34px;
+      border-radius: 7px;
+      border: 1px solid #d4e2fc;
+      vertical-align: middle;
+    }
+    .remove-img-btn {
+      font-size: 13px;
+      color: #c00;
+      margin-left: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    @media (max-width: 600px) {
+      .chat-container { max-width: 100vw; height: 84vw; }
+      .chat-messages { padding: 12px 6px; }
+      .chat-message { max-width: 98%; font-size: 14px; }
+      .chat-message img { max-width: 100px; max-height: 70px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Global Chat 🌐</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area">
+      <button class="emoji-btn" id="emojiBtn" title="อิโมจิ">😊</button>
+      <input type="file" id="imgInput" accept="image/*" style="display: none;">
+      <button class="chat-btn" id="attachBtn" title="แนบรูป">📎</button>
+      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความ...">
+      <button class="chat-btn" id="sendBtn" title="ส่งข้อความ">➤</button>
+      <div class="emoji-picker" id="emojiPicker" style="display:none;"></div>
+      <span id="imagePreview"></span>
+    </div>
+  </div>
+  <script>
+    // Simple emoji list
+    const emojiList = [
+      "😀","😁","😂","🤣","😊","😍","😘",
+      "😎","😢","😭","😡","😱","👍","🙏",
+      "👏","🤩","🤔","😅","😉","😋","😏",
+      "🥳","😴","😤","😬","🤗","😇","🥰"
+    ];
+
+    // Elements
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPicker = document.getElementById('emojiPicker');
+    const attachBtn = document.getElementById('attachBtn');
+    const imgInput = document.getElementById('imgInput');
+    const imagePreview = document.getElementById('imagePreview');
+
+    let imgDataURL = null;
+
+    // Show emoji picker
+    emojiBtn.onclick = () => {
+      emojiPicker.style.display = emojiPicker.style.display === "none" ? "grid" : "none";
+    };
+
+    // Build emoji picker
+    emojiList.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.textContent = emoji;
+      btn.className = "emoji-btn";
+      btn.onclick = () => {
+        chatInput.value += emoji;
+        emojiPicker.style.display = "none";
+        chatInput.focus();
+      };
+      emojiPicker.appendChild(btn);
+    });
+
+    // Attach image
+    attachBtn.onclick = () => imgInput.click();
+
+    imgInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          imgDataURL = evt.target.result;
+          renderImagePreview();
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    function renderImagePreview() {
+      if (imgDataURL) {
+        imagePreview.innerHTML = `<img src="${imgDataURL}" class="preview-image"><button class="remove-img-btn" onclick="removePreviewImg()">ลบ</button>`;
+      } else {
+        imagePreview.innerHTML = '';
+      }
+    }
+
+    window.removePreviewImg = function() {
+      imgDataURL = null;
+      imgInput.value = "";
+      renderImagePreview();
+    };
+
+    // Send message
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text && !imgDataURL) return;
+
+      const div = document.createElement('div');
+      div.className = 'chat-message';
+      if (text) {
+        div.textContent = text;
+      }
+      if (imgDataURL) {
+        const img = document.createElement('img');
+        img.src = imgDataURL;
+        div.appendChild(document.createElement('br'));
+        div.appendChild(img);
+      }
+      chatMessages.appendChild(div);
+      // Scroll ลงล่างสุดเสมอเมื่อมีข้อความใหม่
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 30);
+
+      chatInput.value = '';
+      imgDataURL = null;
+      renderImagePreview();
+    }
+
+    sendBtn.onclick = sendMessage;
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // Click outside emoji picker to close
+    document.addEventListener('click', function(e) {
+      if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+        emojiPicker.style.display = "none";
+      }
+    });
+
+  </script>
+</body>
+</html>
